@@ -11,7 +11,7 @@ a low level.
 
 ** Complete Data Flow Overview
 
-[[file:emacs-complete-data-flow.png]]
+[[file:complete-data-flow.png]]
 
 * Buffer Internals
 
@@ -19,7 +19,7 @@ a low level.
 
 Buffers are the fundamental data structure in Emacs, implemented in C.
 
-[[file:emacs-buffer-internal-structure.png]]
+[[file:buffer-internal-structure.png]]
 
 *** Key Components
 - *Text*: Gap buffer data structure (see [[*Gap Buffer][Gap Buffer]])
@@ -38,7 +38,7 @@ Buffers are the fundamental data structure in Emacs, implemented in C.
 
 Emacs uses a *gap buffer* for efficient text editing.
 
-[[file:emacs-gap-buffer-operations.png]]
+[[file:gap-buffer-operations.png]]
 
 #+BEGIN_EXAMPLE
 Text: "Hello World"
@@ -131,7 +131,7 @@ Markers maintain their logical position when text is inserted/deleted.
 
 The redisplay engine updates the screen to reflect buffer contents.
 
-[[file:emacs-redisplay-engine.png]]
+[[file:redisplay-engine.png]]
 
 ** Key Challenges
 1. *Efficiency*: Minimize screen updates
@@ -183,7 +183,7 @@ Keep old glyph matrices and compare:
 
 Emacs uses a traditional mark-and-sweep garbage collector.
 
-[[file:emacs-garbage-collection.png]]
+[[file:garbage-collection.png]]
 
 ** GC Phases
 
@@ -324,7 +324,7 @@ Modern Emacs can compile Elisp to native machine code.
 
 Symbols are more than just names - they're complex objects.
 
-[[file:emacs-symbol-structure.png]]
+[[file:symbol-structure.png]]
 
 ** Symbol Components
 
@@ -373,7 +373,7 @@ The obarray ensures symbol uniqueness.
 
 Keymaps map key sequences to commands.
 
-[[file:emacs-keymap-lookup-algorithm.png]]
+[[file:keymap-lookup-algorithm.png]]
 
 ** Keymap Types
 
@@ -473,7 +473,7 @@ Special keymap entries that expect more keys:
 
 * Process Management
 
-[[file:emacs-process-management.png]]
+[[file:process-management.png]]
 
 ** Process Types
 :PROPERTIES:
@@ -740,25 +740,25 @@ Key source files:
 * Diagrams
 ** Buffer Internal Structure
 
-[[file:emacs-buffer-internal-structure.puml][PlantUML Source]] | [[file:emacs-buffer-internal-structure.png][PNG Image]]
+[[file:buffer-internal-structure.puml][PlantUML Source]] | [[file:buffer-internal-structure.png][PNG Image]]
 ** Gap Buffer Operations
 
-[[file:emacs-gap-buffer-operations.puml][PlantUML Source]] | [[file:emacs-gap-buffer-operations.png][PNG Image]]
+[[file:gap-buffer-operations.puml][PlantUML Source]] | [[file:gap-buffer-operations.png][PNG Image]]
 ** Redisplay Engine
 
-[[file:emacs-redisplay-engine.puml][PlantUML Source]] | [[file:emacs-redisplay-engine.png][PNG Image]]
+[[file:redisplay-engine.puml][PlantUML Source]] | [[file:redisplay-engine.png][PNG Image]]
 ** Garbage Collection
 
-[[file:emacs-garbage-collection.puml][PlantUML Source]] | [[file:emacs-garbage-collection.png][PNG Image]]
+[[file:garbage-collection.puml][PlantUML Source]] | [[file:garbage-collection.png][PNG Image]]
 ** Symbol Structure
 
-[[file:emacs-symbol-structure.puml][PlantUML Source]] | [[file:emacs-symbol-structure.png][PNG Image]]
+[[file:symbol-structure.puml][PlantUML Source]] | [[file:symbol-structure.png][PNG Image]]
 ** Keymap Lookup Algorithm
 
-[[file:emacs-keymap-lookup-algorithm.puml][PlantUML Source]] | [[file:emacs-keymap-lookup-algorithm.png][PNG Image]]
+[[file:keymap-lookup-algorithm.puml][PlantUML Source]] | [[file:keymap-lookup-algorithm.png][PNG Image]]
 ** Process Management
 
-[[file:emacs-process-management.puml][PlantUML Source]] | [[file:emacs-process-management.png][PNG Image]]
+[[file:process-management.puml][PlantUML Source]] | [[file:process-management.png][PNG Image]]
 ** Complete Data Flow
 
-[[file:emacs-complete-data-flow.puml][PlantUML Source]] | [[file:emacs-complete-data-flow.png][PNG Image]]
+[[file:complete-data-flow.puml][PlantUML Source]] | [[file:complete-data-flow.png][PNG Image]]
