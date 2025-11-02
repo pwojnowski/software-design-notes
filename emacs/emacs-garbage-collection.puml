@@ -1,0 +1,87 @@
+@startuml Garbage Collection
+!theme plain
+
+title Emacs Garbage Collection (Mark & Sweep)
+
+rectangle "GC Trigger" {
+    (Allocation fails) as alloc
+    (gc-cons-threshold\nexceeded) as threshold
+    (Explicit call to\ngarbage-collect) as explicit
+}
+
+rectangle "Mark Phase" {
+    rectangle "GC Roots" {
+        [All Lisp Variables]
+        [Stack Frames]
+        [All Buffers]
+        [All Windows/Frames]
+        [Symbol Obarray]
+    }
+
+    agent "Mark Recursively" as mark
+
+    database "Mark Bits" as markbits
+}
+
+rectangle "Sweep Phase" {
+    rectangle "Free Lists" {
+        folder "Cons Cells"
+        folder "Strings"
+        folder "Vectors"
+        folder "Symbols"
+        folder "Floats"
+        folder "Markers"
+    }
+
+    agent "Free Unmarked\nObjects" as sweep
+}
+
+rectangle "Result" {
+    (Memory reclaimed)
+    (Free lists replenished)
+    (Statistics returned)
+}
+
+alloc --> [All Lisp Variables]
+threshold --> [All Lisp Variables]
+explicit --> [All Lisp Variables]
+
+[All Lisp Variables] --> mark
+[Stack Frames] --> mark
+[All Buffers] --> mark
+[All Windows/Frames] --> mark
+[Symbol Obarray] --> mark
+
+mark --> markbits : "Set mark bit on\nreachable objects"
+
+markbits --> sweep : "Scan all objects"
+
+sweep --> "Free Lists" : "Free unmarked,\nkeep marked"
+
+"Free Lists" --> (Memory reclaimed)
+"Free Lists" --> (Free lists replenished)
+"Free Lists" --> (Statistics returned)
+
+note right of mark
+    Recursive marking:
+    1. Check if already marked
+    2. Set mark bit
+    3. Recurse into referenced objects
+end note
+
+note right of sweep
+    For each object type:
+    - Scan allocation blocks
+    - Free objects without mark bit
+    - Clear mark bits on survivors
+    - Rebuild free lists
+end note
+
+note bottom
+    **Performance Tips:**
+    • Increase gc-cons-threshold to reduce GC frequency
+    • Minimize consing in hot loops
+    • Monitor with (garbage-collect) return value
+end note
+
+@enduml

@@ -1,0 +1,96 @@
+@startuml Complete Data Flow
+
+skinparam linetype ortho
+
+actor User
+
+rectangle "Input Layer" {
+    component [Keyboard/Mouse] as input
+    component [Event Queue] as queue
+}
+
+rectangle "Command Layer" {
+    component [Key Lookup] as keylookup
+    component [Command Execution] as cmd
+    component [Elisp Evaluator] as eval
+}
+
+rectangle "Data Layer" {
+    database "Buffers" as buffers {
+        [Gap Buffer]
+        [Markers]
+        [Properties]
+        [Undo List]
+    }
+
+    database "State" as state {
+        [Windows]
+        [Frames]
+        [Processes]
+        [Variables]
+    }
+}
+
+rectangle "Display Layer" {
+    component [Redisplay Engine] as redisplay
+    component [Glyph Builder] as glyph
+    component [Screen Updater] as screen
+}
+
+rectangle "Output Layer" {
+    component [Terminal/X11/NS] as output
+}
+
+rectangle "Background" {
+    component [Timers] as timers
+    component [Idle Tasks] as idle
+    component [Process Filters] as filters
+}
+
+User --> input
+input --> queue
+queue --> keylookup
+keylookup --> cmd
+cmd --> eval
+
+eval <--> buffers : "read/modify"
+eval <--> state : "read/modify"
+
+eval --> redisplay : "trigger"
+buffers --> redisplay
+state --> redisplay
+
+redisplay --> glyph
+glyph --> screen
+screen --> output
+output --> User : "visual feedback"
+
+timers --> eval : "periodic execution"
+idle --> eval : "when idle"
+filters --> eval : "async output"
+
+note right of eval
+    Elisp Interpreter:
+    - Evaluates all commands
+    - Byte-code execution
+    - Native code execution
+    - Garbage collection
+end note
+
+note bottom of buffers
+    Core data structures
+    optimized for editing:
+    - O(1) insertion at point
+    - Efficient property lookup
+    - Incremental undo
+end note
+
+note right of redisplay
+    Only updates screen
+    when needed:
+    - After commands
+    - When idle
+    - Never during input
+end note
+
+@enduml

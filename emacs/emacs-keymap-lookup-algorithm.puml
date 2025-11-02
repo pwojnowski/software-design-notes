@@ -1,0 +1,64 @@
+@startuml Keymap Lookup Algorithm
+
+start
+
+:User presses key sequence\n(e.g., C-x C-f);
+
+:Build key sequence list\n[(?\C-x ?\C-f)];
+
+:Start with first keymap\nin precedence order;
+
+partition "Keymap Search Order" {
+    :1. Overriding keymaps\n(overriding-local-map);
+
+    :2. Minor mode keymaps\n(in reverse order);
+
+    :3. Local keymap\n(major mode keymap);
+
+    :4. Global keymap;
+}
+
+repeat
+    :Look up first key\nin current keymap;
+
+    if (Found?) then (yes)
+        if (Is prefix key?) then (yes)
+            :Get prefix keymap;
+            :Remove first key\nfrom sequence;
+
+            if (More keys?) then (yes)
+                :Continue in\nprefix keymap;
+            else (no)
+                :Show "C-x-"\n(waiting for more);
+                stop
+            endif
+        else (no - command)
+            :Found command!;
+            stop
+        endif
+    else (no)
+        :Try next keymap\nin precedence;
+    endif
+repeat while (More keymaps?) is (yes)
+->no;
+
+:No binding found;
+:Signal error\n"C-x C-f is undefined";
+
+stop
+
+note right
+    **Example Precedence:**
+
+    In Python mode with company-mode:
+    1. overriding-local-map (if set)
+    2. company-mode-map
+    3. python-mode-map
+       → inherits from prog-mode-map
+          → inherits from global-map
+    4. global-map (fallback)
+
+    First match wins!
+end note
+
+@enduml

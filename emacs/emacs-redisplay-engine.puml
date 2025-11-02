@@ -1,0 +1,75 @@
+@startuml Redisplay Engine
+skinparam sequenceMessageAlign center
+
+participant "User Action" as user
+participant "Command Loop" as loop
+participant "Redisplay\nEngine" as redisplay
+participant "Glyph Matrix\nBuilder" as glyph
+participant "Screen\nUpdater" as screen
+participant "Terminal/GUI" as term
+
+user -> loop: Key press / Command
+activate loop
+
+loop -> loop: Execute command
+note right: Modify buffer text
+
+loop -> redisplay: Request redisplay
+activate redisplay
+
+redisplay -> redisplay: Phase 1:\nDetermine what changed
+note right
+    Check:
+    - Modified buffers
+    - Window config changes
+    - Scroll position
+end note
+
+alt Nothing Changed
+    redisplay --> loop: Skip redisplay
+else Something Changed
+    redisplay -> glyph: Phase 2:\nBuild glyph matrices
+    activate glyph
+
+    glyph -> glyph: For each window...
+    note right
+        1. Apply faces & properties
+        2. Handle line wrapping
+        3. Process images
+        4. Compute bidi text
+        5. Apply overlays
+    end note
+
+    glyph --> redisplay: Glyph matrices ready
+    deactivate glyph
+
+    redisplay -> screen: Phase 3:\nUpdate screen
+    activate screen
+
+    screen -> screen: Compare old vs\nnew glyph matrices
+    note right
+        Optimizations:
+        - Scrolling regions
+        - Unchanged lines
+        - Minimal updates
+    end note
+
+    screen -> term: Send display commands
+    activate term
+    term --> screen: Screen updated
+    deactivate term
+
+    deactivate screen
+end
+
+deactivate redisplay
+loop --> user: Ready for input
+deactivate loop
+
+note over redisplay
+    **xdisp.c: ~30,000 lines**
+    One of the most complex
+    parts of Emacs
+end note
+
+@enduml

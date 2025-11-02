@@ -9,11 +9,17 @@ This document explores the internal implementation details of Emacs, going
 beyond the architectural overview to understand how specific components work at
 a low level.
 
+** Complete Data Flow Overview
+
+[[file:emacs-complete-data-flow.png]]
+
 * Buffer Internals
 
 ** Buffer Structure
 
 Buffers are the fundamental data structure in Emacs, implemented in C.
+
+[[file:emacs-buffer-internal-structure.png]]
 
 *** Key Components
 - *Text*: Gap buffer data structure (see [[*Gap Buffer][Gap Buffer]])
@@ -31,6 +37,8 @@ Buffers are the fundamental data structure in Emacs, implemented in C.
 :END:
 
 Emacs uses a *gap buffer* for efficient text editing.
+
+[[file:emacs-gap-buffer-operations.png]]
 
 #+BEGIN_EXAMPLE
 Text: "Hello World"
@@ -123,6 +131,8 @@ Markers maintain their logical position when text is inserted/deleted.
 
 The redisplay engine updates the screen to reflect buffer contents.
 
+[[file:emacs-redisplay-engine.png]]
+
 ** Key Challenges
 1. *Efficiency*: Minimize screen updates
 2. *Variable-width fonts*: Character widths vary
@@ -172,6 +182,8 @@ Keep old glyph matrices and compare:
 :END:
 
 Emacs uses a traditional mark-and-sweep garbage collector.
+
+[[file:emacs-garbage-collection.png]]
 
 ** GC Phases
 
@@ -312,6 +324,8 @@ Modern Emacs can compile Elisp to native machine code.
 
 Symbols are more than just names - they're complex objects.
 
+[[file:emacs-symbol-structure.png]]
+
 ** Symbol Components
 
 Each symbol has:
@@ -358,6 +372,8 @@ The obarray ensures symbol uniqueness.
 :END:
 
 Keymaps map key sequences to commands.
+
+[[file:emacs-keymap-lookup-algorithm.png]]
 
 ** Keymap Types
 
@@ -456,6 +472,8 @@ Special keymap entries that expect more keys:
 - Allows proper closures
 
 * Process Management
+
+[[file:emacs-process-management.png]]
 
 ** Process Types
 :PROPERTIES:
@@ -721,643 +739,26 @@ Key source files:
 #+END_QUOTE
 * Diagrams
 ** Buffer Internal Structure
-#+begin_src plantuml
-@startuml Buffer Internal Structure
-skinparam componentStyle rectangle
 
-package "Buffer Object (C Structure)" {
-    component "Buffer Name" as name {
-        [String: "*scratch*"]
-    }
-
-    component "Text Storage" as text {
-        rectangle "Gap Buffer" {
-            [Text Before Gap]
-            [GAP (empty space)]
-            [Text After Gap]
-            note right
-                Gap moves to cursor
-                for O(1) insertion
-            end note
-        }
-    }
-
-    component "Markers" as markers {
-        database "Marker List" {
-            [point-marker]
-            [mark-marker]
-            [user-markers...]
-        }
-        note right
-            Double-linked list
-            Auto-adjust on edits
-        end note
-    }
-
-    component "Text Properties" as props {
-        [Interval Tree]
-        note right
-            Face (syntax highlighting)
-            Read-only regions
-            Custom properties
-        end note
-    }
-
-    component "Overlays" as overlays {
-        [Overlay List]
-        note right
-            Temporary decorations
-            Don't move with text
-            Company popups, etc.
-        end note
-    }
-
-    component "Mode Information" as modes {
-        [Major Mode: python-mode]
-        [Minor Modes: List]
-        [Keymap]
-        [Syntax Table]
-    }
-
-    component "Local Variables" as locals {
-        [Buffer-local bindings]
-        [tab-width: 4]
-        [indent-tabs-mode: nil]
-    }
-
-    component "Undo Information" as undo {
-        [Undo List]
-        note right
-            Records all changes
-            Grouped by command
-        end note
-    }
-}
-
-text --> markers : "positions reference"
-text --> props : "attached to"
-text <.. overlays : "independent of"
-modes --> text : "interprets"
-undo --> text : "tracks changes"
-
-@enduml
-#+end_src
+[[file:emacs-buffer-internal-structure.puml][PlantUML Source]] | [[file:emacs-buffer-internal-structure.png][PNG Image]]
 ** Gap Buffer Operations
-#+begin_src plantuml
-@startuml Gap Buffer Operations
-!define CELL rectangle
 
-title Gap Buffer: Efficient Text Editing
-
-state "Initial State" as s1
-s1 : Text: "Hello World"
-s1 : [H][e][l][l][o][ ][W][o][r][l][d]
-
-state "Move cursor after 'Hello'" as s2
-s2 : Cursor moved to position 5
-s2 : [H][e][l][l][o][_][_][_][ ][W][o][r][l][d]
-s2 : ↑gap_start    ↑gap_end
-
-state "Insert ' beautiful'" as s3
-s3 : Inserted 10 characters at gap
-s3 : [H][e][l][l][o][ ][b][e][a][u][t][i][f][u][l][ ][W][o][r][l][d]
-
-state "Delete 'beautiful '" as s4
-s4 : Gap expanded by deletion
-s4 : [H][e][l][l][o][_][_][_][_][_][_][_][_][_][_][ ][W][o][r][l][d]
-s4 : ↑gap_start                ↑gap_end
-
-[*] --> s1
-s1 --> s2 : Move point
-s2 --> s3 : Insert text\n(O(1) at gap)
-s3 --> s4 : Delete text\n(O(1) at gap)
-
-note right of s2
-    **Gap Movement Cost**
-    Copy text between
-    old and new position
-    O(distance moved)
-end note
-
-note right of s3
-    **Insertion at Gap**
-    - O(1) operation
-    - Just advance gap_start
-    - No text copying!
-end note
-
-note bottom
-    Why Gap Buffer?
-    - Most edits are consecutive (typing, deleting)
-    - Gap stays near cursor
-    - Very fast for normal editing patterns
-end note
-
-@enduml
-#+end_src
+[[file:emacs-gap-buffer-operations.puml][PlantUML Source]] | [[file:emacs-gap-buffer-operations.png][PNG Image]]
 ** Redisplay Engine
-#+begin_src plantuml
-@startuml Redisplay Engine
-skinparam sequenceMessageAlign center
 
-participant "User Action" as user
-participant "Command Loop" as loop
-participant "Redisplay\nEngine" as redisplay
-participant "Glyph Matrix\nBuilder" as glyph
-participant "Screen\nUpdater" as screen
-participant "Terminal/GUI" as term
-
-user -> loop: Key press / Command
-activate loop
-
-loop -> loop: Execute command
-note right: Modify buffer text
-
-loop -> redisplay: Request redisplay
-activate redisplay
-
-redisplay -> redisplay: Phase 1:\nDetermine what changed
-note right
-    Check:
-    - Modified buffers
-    - Window config changes
-    - Scroll position
-end note
-
-alt Nothing Changed
-    redisplay --> loop: Skip redisplay
-else Something Changed
-    redisplay -> glyph: Phase 2:\nBuild glyph matrices
-    activate glyph
-
-    glyph -> glyph: For each window...
-    note right
-        1. Apply faces & properties
-        2. Handle line wrapping
-        3. Process images
-        4. Compute bidi text
-        5. Apply overlays
-    end note
-
-    glyph --> redisplay: Glyph matrices ready
-    deactivate glyph
-
-    redisplay -> screen: Phase 3:\nUpdate screen
-    activate screen
-
-    screen -> screen: Compare old vs\nnew glyph matrices
-    note right
-        Optimizations:
-        - Scrolling regions
-        - Unchanged lines
-        - Minimal updates
-    end note
-
-    screen -> term: Send display commands
-    activate term
-    term --> screen: Screen updated
-    deactivate term
-
-    deactivate screen
-end
-
-deactivate redisplay
-loop --> user: Ready for input
-deactivate loop
-
-note over redisplay
-    **xdisp.c: ~30,000 lines**
-    One of the most complex
-    parts of Emacs
-end note
-
-@enduml
-#+end_src
+[[file:emacs-redisplay-engine.puml][PlantUML Source]] | [[file:emacs-redisplay-engine.png][PNG Image]]
 ** Garbage Collection
-#+begin_src plantuml
-@startuml Garbage Collection
-!theme plain
 
-title Emacs Garbage Collection (Mark & Sweep)
-
-rectangle "GC Trigger" {
-    (Allocation fails) as alloc
-    (gc-cons-threshold\nexceeded) as threshold
-    (Explicit call to\ngarbage-collect) as explicit
-}
-
-rectangle "Mark Phase" {
-    rectangle "GC Roots" {
-        [All Lisp Variables]
-        [Stack Frames]
-        [All Buffers]
-        [All Windows/Frames]
-        [Symbol Obarray]
-    }
-
-    agent "Mark Recursively" as mark
-
-    database "Mark Bits" as markbits
-}
-
-rectangle "Sweep Phase" {
-    collections "Free Lists" {
-        folder "Cons Cells"
-        folder "Strings"
-        folder "Vectors"
-        folder "Symbols"
-        folder "Floats"
-        folder "Markers"
-    }
-
-    agent "Free Unmarked\nObjects" as sweep
-}
-
-rectangle "Result" {
-    (Memory reclaimed)
-    (Free lists replenished)
-    (Statistics returned)
-}
-
-alloc --> [All Lisp Variables]
-threshold --> [All Lisp Variables]
-explicit --> [All Lisp Variables]
-
-[All Lisp Variables] --> mark
-[Stack Frames] --> mark
-[All Buffers] --> mark
-[All Windows/Frames] --> mark
-[Symbol Obarray] --> mark
-
-mark --> markbits : "Set mark bit on\nreachable objects"
-
-markbits --> sweep : "Scan all objects"
-
-sweep --> "Free Lists" : "Free unmarked,\nkeep marked"
-
-"Free Lists" --> (Memory reclaimed)
-"Free Lists" --> (Free lists replenished)
-"Free Lists" --> (Statistics returned)
-
-note right of mark
-    Recursive marking:
-    1. Check if already marked
-    2. Set mark bit
-    3. Recurse into referenced objects
-end note
-
-note right of sweep
-    For each object type:
-    - Scan allocation blocks
-    - Free objects without mark bit
-    - Clear mark bits on survivors
-    - Rebuild free lists
-end note
-
-note bottom
-    **Performance Tips:**
-    • Increase gc-cons-threshold to reduce GC frequency
-    • Minimize consing in hot loops
-    • Monitor with (garbage-collect) return value
-end note
-
-@enduml
-#+end_src
+[[file:emacs-garbage-collection.puml][PlantUML Source]] | [[file:emacs-garbage-collection.png][PNG Image]]
 ** Symbol Structure
-#+begin_src plantuml
-@startuml Symbol Structure
 
-object "Symbol: 'my-symbol" as sym {
-    **name**: "my-symbol"
-    **interned**: true
-}
-
-object "Value Cell" as value {
-    binding = 42
-    (variable value)
-}
-
-object "Function Cell" as func {
-    definition = λ(closure)
-    (function definition)
-}
-
-object "Property List" as plist {
-    doc = "Documentation"
-    custom-prop = "value"
-    risky-local-variable = t
-}
-
-object "Obarray\n(Hash Table)" as obarray {
-    "my-symbol" → Symbol*
-    "another-symbol" → Symbol*
-    ...
-}
-
-sym --> value : "symbol-value"
-sym --> func : "symbol-function"
-sym --> plist : "symbol-plist"
-
-obarray --> sym : "intern 'my-symbol"
-
-note right of sym
-    **One symbol, multiple roles:**
-
-    (defvar my-symbol 42)
-    ; Uses value cell
-
-    (defun my-symbol () "hi")
-    ; Uses function cell
-
-    (put 'my-symbol 'doc "...")
-    ; Uses property list
-end note
-
-note bottom of obarray
-    **Symbol Interning:**
-
-    (eq 'foo 'foo) => t
-
-    All instances of 'foo
-    refer to the SAME object
-    in memory (interned)
-end note
-
-@enduml
-#+end_src
+[[file:emacs-symbol-structure.puml][PlantUML Source]] | [[file:emacs-symbol-structure.png][PNG Image]]
 ** Keymap Lookup Algorithm
-#+begin_src plantuml
-@startuml Keymap Lookup Algorithm
 
-start
-
-:User presses key sequence\n(e.g., C-x C-f);
-
-:Build key sequence list\n[(?\C-x ?\C-f)];
-
-:Start with first keymap\nin precedence order;
-
-partition "Keymap Search Order" {
-    :1. Overriding keymaps\n(overriding-local-map);
-
-    :2. Minor mode keymaps\n(in reverse order);
-
-    :3. Local keymap\n(major mode keymap);
-
-    :4. Global keymap;
-}
-
-repeat
-    :Look up first key\nin current keymap;
-
-    if (Found?) then (yes)
-        if (Is prefix key?) then (yes)
-            :Get prefix keymap;
-            :Remove first key\nfrom sequence;
-
-            if (More keys?) then (yes)
-                :Continue in\nprefix keymap;
-            else (no)
-                :Show "C-x-"\n(waiting for more);
-                stop
-            endif
-        else (no - command)
-            :Found command!;
-            stop
-        endif
-    else (no)
-        :Try next keymap\nin precedence;
-    endif
-repeat while (More keymaps?) is (yes)
-->no;
-
-:No binding found;
-:Signal error\n"C-x C-f is undefined";
-
-stop
-
-note right
-    **Example Precedence:**
-
-    In Python mode with company-mode:
-    1. overriding-local-map (if set)
-    2. company-mode-map
-    3. python-mode-map
-       → inherits from prog-mode-map
-          → inherits from global-map
-    4. global-map (fallback)
-
-    First match wins!
-end note
-
-@enduml
-#+end_src
+[[file:emacs-keymap-lookup-algorithm.puml][PlantUML Source]] | [[file:emacs-keymap-lookup-algorithm.png][PNG Image]]
 ** Process Management
-#+begin_src plantuml
-@startuml Process Management
 
-package "Emacs Process Types" {
-
-    class "Synchronous Process" as sync {
-        + call-process()
-        + call-process-region()
-        --
-        Blocks until complete
-        Output to buffer
-        Return exit code
-    }
-
-    class "Asynchronous Process" as async {
-        + start-process()
-        + make-process()
-        --
-        Non-blocking
-        Filter function for output
-        Sentinel for status changes
-    }
-
-    class "Network Process" as network {
-        + make-network-process()
-        --
-        TCP/UDP connections
-        Client or server
-        Same filter/sentinel API
-    }
-
-    class "Serial Port" as serial {
-        + make-serial-process()
-        --
-        Hardware communication
-        Used for Arduino, etc.
-    }
-}
-
-object "Process Object" as proc {
-    name
-    buffer
-    command
-    pid
-    status
-    --
-    filter-function
-    sentinel-function
-}
-
-object "Filter Function" as filter {
-    (lambda (proc string)
-      (handle-output string))
-}
-
-object "Sentinel Function" as sentinel {
-    (lambda (proc event)
-      (handle-state-change event))
-}
-
-async --> proc : creates
-network --> proc : creates
-serial --> proc : creates
-
-proc --> filter : "calls on output"
-proc --> sentinel : "calls on status change"
-
-note right of filter
-    **Filter receives output:**
-    - Called with each chunk
-    - Not line-buffered
-    - Insert into buffer
-    - Parse incrementally
-end note
-
-note right of sentinel
-    **Sentinel notified on:**
-    - Process exit
-    - Signal received
-    - Connection closed
-    - Open/closed events
-
-    Event strings:
-    - "finished\n"
-    - "exited abnormally\n"
-    - "killed\n"
-    - "open\n", "closed\n"
-end note
-
-actor "External Process" as ext
-
-proc <--> ext : "stdin/stdout/stderr"
-
-note bottom
-    **Example: Async LSP Server**
-
-    (setq lsp-proc
-      (make-process
-       :name "python-lsp"
-       :command '("pylsp")
-       :filter 'lsp-filter
-       :sentinel 'lsp-sentinel
-       :connection-type 'pipe))
-
-    (process-send-string lsp-proc json-rpc-msg)
-end note
-
-@enduml
-#+end_src
+[[file:emacs-process-management.puml][PlantUML Source]] | [[file:emacs-process-management.png][PNG Image]]
 ** Complete Data Flow
-#+begin_src plantuml
-@startuml Complete Data Flow
 
-skinparam linetype ortho
-
-actor User
-
-rectangle "Input Layer" {
-    component [Keyboard/Mouse] as input
-    component [Event Queue] as queue
-}
-
-rectangle "Command Layer" {
-    component [Key Lookup] as keylookup
-    component [Command Execution] as cmd
-    component [Elisp Evaluator] as eval
-}
-
-rectangle "Data Layer" {
-    database "Buffers" as buffers {
-        [Gap Buffer]
-        [Markers]
-        [Properties]
-        [Undo List]
-    }
-
-    database "State" as state {
-        [Windows]
-        [Frames]
-        [Processes]
-        [Variables]
-    }
-}
-
-rectangle "Display Layer" {
-    component [Redisplay Engine] as redisplay
-    component [Glyph Builder] as glyph
-    component [Screen Updater] as screen
-}
-
-rectangle "Output Layer" {
-    component [Terminal/X11/NS] as output
-}
-
-rectangle "Background" {
-    component [Timers] as timers
-    component [Idle Tasks] as idle
-    component [Process Filters] as filters
-}
-
-User --> input
-input --> queue
-queue --> keylookup
-keylookup --> cmd
-cmd --> eval
-
-eval <--> buffers : "read/modify"
-eval <--> state : "read/modify"
-
-eval --> redisplay : "trigger"
-buffers --> redisplay
-state --> redisplay
-
-redisplay --> glyph
-glyph --> screen
-screen --> output
-output --> User : "visual feedback"
-
-timers --> eval : "periodic execution"
-idle --> eval : "when idle"
-filters --> eval : "async output"
-
-note right of eval
-    Elisp Interpreter:
-    - Evaluates all commands
-    - Byte-code execution
-    - Native code execution
-    - Garbage collection
-end note
-
-note bottom of buffers
-    Core data structures
-    optimized for editing:
-    - O(1) insertion at point
-    - Efficient property lookup
-    - Incremental undo
-end note
-
-note right of redisplay
-    Only updates screen
-    when needed:
-    - After commands
-    - When idle
-    - Never during input
-end note
-
-@enduml
-#+end_src
+[[file:emacs-complete-data-flow.puml][PlantUML Source]] | [[file:emacs-complete-data-flow.png][PNG Image]]

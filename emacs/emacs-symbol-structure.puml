@@ -1,0 +1,59 @@
+@startuml Symbol Structure
+
+object "Symbol: 'my-symbol" as sym {
+    **name**: "my-symbol"
+    **interned**: true
+}
+
+object "Value Cell" as value {
+    binding = 42
+    (variable value)
+}
+
+object "Function Cell" as func {
+    definition = λ(closure)
+    (function definition)
+}
+
+object "Property List" as plist {
+    doc = "Documentation"
+    custom-prop = "value"
+    risky-local-variable = t
+}
+
+object "Obarray\n(Hash Table)" as obarray {
+    "my-symbol" → Symbol*
+    "another-symbol" → Symbol*
+    ...
+}
+
+sym --> value : "symbol-value"
+sym --> func : "symbol-function"
+sym --> plist : "symbol-plist"
+
+obarray --> sym : "intern 'my-symbol"
+
+note right of sym
+    **One symbol, multiple roles:**
+
+    (defvar my-symbol 42)
+    ; Uses value cell
+
+    (defun my-symbol () "hi")
+    ; Uses function cell
+
+    (put 'my-symbol 'doc "...")
+    ; Uses property list
+end note
+
+note bottom of obarray
+    **Symbol Interning:**
+
+    (eq 'foo 'foo) => t
+
+    All instances of 'foo
+    refer to the SAME object
+    in memory (interned)
+end note
+
+@enduml

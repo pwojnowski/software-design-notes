@@ -1,0 +1,79 @@
+@startuml Buffer Internal Structure
+skinparam componentStyle rectangle
+
+package "Buffer Object (C Structure)" {
+    component "Buffer Name" as name {
+        [String: "*scratch*"]
+    }
+
+    component "Text Storage" as text {
+        rectangle "Gap Buffer" {
+            [Text Before Gap]
+            [GAP (empty space)]
+            [Text After Gap]
+            note right
+                Gap moves to cursor
+                for O(1) insertion
+            end note
+        }
+    }
+
+    component "Markers" as markers {
+        database "Marker List" {
+            [point-marker]
+            [mark-marker]
+            [user-markers...]
+        }
+        note right
+            Double-linked list
+            Auto-adjust on edits
+        end note
+    }
+
+    component "Text Properties" as props {
+        [Interval Tree]
+        note right
+            Face (syntax highlighting)
+            Read-only regions
+            Custom properties
+        end note
+    }
+
+    component "Overlays" as overlays {
+        [Overlay List]
+        note right
+            Temporary decorations
+            Don't move with text
+            Company popups, etc.
+        end note
+    }
+
+    component "Mode Information" as modes {
+        [Major Mode: python-mode]
+        [Minor Modes: List]
+        [Keymap]
+        [Syntax Table]
+    }
+
+    component "Local Variables" as locals {
+        [Buffer-local bindings]
+        [tab-width: 4]
+        [indent-tabs-mode: nil]
+    }
+
+    component "Undo Information" as undo {
+        [Undo List]
+        note right
+            Records all changes
+            Grouped by command
+        end note
+    }
+}
+
+text --> markers : "positions reference"
+text --> props : "attached to"
+text <.. overlays : "independent of"
+modes --> text : "interprets"
+undo --> text : "tracks changes"
+
+@enduml

@@ -1,0 +1,50 @@
+@startuml Gap Buffer Operations
+!define CELL rectangle
+
+title Gap Buffer: Efficient Text Editing
+
+state "Initial State" as s1
+s1 : Text: "Hello World"
+s1 : [H][e][l][l][o][ ][W][o][r][l][d]
+
+state "Move cursor after 'Hello'" as s2
+s2 : Cursor moved to position 5
+s2 : [H][e][l][l][o][_][_][_][ ][W][o][r][l][d]
+s2 : ↑gap_start    ↑gap_end
+
+state "Insert ' beautiful'" as s3
+s3 : Inserted 10 characters at gap
+s3 : [H][e][l][l][o][ ][b][e][a][u][t][i][f][u][l][ ][W][o][r][l][d]
+
+state "Delete 'beautiful '" as s4
+s4 : Gap expanded by deletion
+s4 : [H][e][l][l][o][_][_][_][_][_][_][_][_][_][_][ ][W][o][r][l][d]
+s4 : ↑gap_start                ↑gap_end
+
+[*] --> s1
+s1 --> s2 : Move point
+s2 --> s3 : Insert text\n(O(1) at gap)
+s3 --> s4 : Delete text\n(O(1) at gap)
+
+note right of s2
+    **Gap Movement Cost**
+    Copy text between
+    old and new position
+    O(distance moved)
+end note
+
+note right of s3
+    **Insertion at Gap**
+    - O(1) operation
+    - Just advance gap_start
+    - No text copying!
+end note
+
+note bottom
+    Why Gap Buffer?
+    - Most edits are consecutive (typing, deleting)
+    - Gap stays near cursor
+    - Very fast for normal editing patterns
+end note
+
+@enduml

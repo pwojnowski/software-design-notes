@@ -1,0 +1,108 @@
+@startuml Process Management
+allowmixing
+
+package "Emacs Process Types" {
+
+    class "Synchronous Process" as sync {
+        + call-process()
+        + call-process-region()
+        --
+        Blocks until complete
+        Output to buffer
+        Return exit code
+    }
+
+    class "Asynchronous Process" as async {
+        + start-process()
+        + make-process()
+        --
+        Non-blocking
+        Filter function for output
+        Sentinel for status changes
+    }
+
+    class "Network Process" as network {
+        + make-network-process()
+        --
+        TCP/UDP connections
+        Client or server
+        Same filter/sentinel API
+    }
+
+    class "Serial Port" as serial {
+        + make-serial-process()
+        --
+        Hardware communication
+        Used for Arduino, etc.
+    }
+}
+
+object "Process Object" as proc {
+    name
+    buffer
+    command
+    pid
+    status
+    --
+    filter-function
+    sentinel-function
+}
+
+object "Filter Function" as filter {
+    (lambda (proc string)
+      (handle-output string))
+}
+
+object "Sentinel Function" as sentinel {
+    (lambda (proc event)
+      (handle-state-change event))
+}
+
+async --> proc : creates
+network --> proc : creates
+serial --> proc : creates
+
+proc --> filter : "calls on output"
+proc --> sentinel : "calls on status change"
+
+note right of filter
+    **Filter receives output:**
+    - Called with each chunk
+    - Not line-buffered
+    - Insert into buffer
+    - Parse incrementally
+end note
+
+note right of sentinel
+    **Sentinel notified on:**
+    - Process exit
+    - Signal received
+    - Connection closed
+    - Open/closed events
+
+    Event strings:
+    - "finished\n"
+    - "exited abnormally\n"
+    - "killed\n"
+    - "open\n", "closed\n"
+end note
+
+actor "External Process" as ext
+
+proc <--> ext : "stdin/stdout/stderr"
+
+note bottom
+    **Example: Async LSP Server**
+
+    (setq lsp-proc
+      (make-process
+       :name "python-lsp"
+       :command '("pylsp")
+       :filter 'lsp-filter
+       :sentinel 'lsp-sentinel
+       :connection-type 'pipe))
+
+    (process-send-string lsp-proc json-rpc-msg)
+end note
+
+@enduml
