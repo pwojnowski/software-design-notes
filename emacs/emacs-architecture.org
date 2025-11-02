@@ -1,0 +1,526 @@
+* Emacs Architecture Overview
+** Core Architecture Components
+
+*** C Core (Emacs Core)
+:PROPERTIES:
+:RESPONSIBILITY: Fundamental primitives and performance-critical operations
+:PERCENTAGE: ~5% of Emacs codebase
+:END:
+
+The C core provides the foundation of Emacs with:
+
+- Basic data structures (buffers, windows, frames)
+- Primitive functions for text manipulation
+- Low-level I/O operations
+- Event loop and display management
+- Garbage collector
+- Interface to the operating system
+
+*** Emacs Lisp Interpreter
+:PROPERTIES:
+:RESPONSIBILITY: Executes Elisp code
+:END:
+
+The interpreter is the bridge between the C core and the Elisp layer.
+
+**** Features
+- Dynamic typing
+- Lexical and dynamic scoping support
+- Built-in evaluation engine
+- Byte-code compiler for improved performance
+
+*** Emacs Lisp Layer
+:PROPERTIES:
+:RESPONSIBILITY: Implements most of Emacs functionality
+:PERCENTAGE: ~95% of Emacs codebase
+:END:
+
+The Elisp layer contains the vast majority of Emacs features:
+
+- All editing commands
+- Major and minor modes
+- User interface elements
+- Package system
+- Built-in applications (mail, calendar, org-mode, etc.)
+
+**** Key Insight
+Most of Emacs (~95%) is written in Elisp, making it highly introspective and modifiable at runtime.
+
+** Architecture Diagrams
+*** Component Architecture
+#+begin_src plantuml
+@startuml Emacs Architecture - Components
+!define RECTANGLE class
+
+package "Emacs Architecture" {
+
+    rectangle "User Interface Layer" as UI {
+        component [Frames] as frames
+        component [Windows] as windows
+        component [Minibuffer] as minibuffer
+        component [Mode Line] as modeline
+    }
+
+    rectangle "Emacs Lisp Layer" as ELisp {
+        component [Major Modes] as majormodes
+        component [Minor Modes] as minormodes
+        component [Built-in Packages] as packages
+        component [User Extensions] as userext
+        component [Commands] as commands
+        component [Hooks & Advice] as hooks
+    }
+
+    rectangle "Elisp Interpreter" as Interpreter {
+        component [Evaluator] as eval
+        component [Byte-code Compiler] as compiler
+        component [Reader] as reader
+        component [Printer] as printer
+    }
+
+    rectangle "C Core" as Core {
+        component [Buffer Management] as buffers
+        component [Text Primitives] as textprims
+        component [Event Loop] as eventloop
+        component [Display Engine] as display
+        component [Garbage Collector] as gc
+        component [OS Interface] as os
+    }
+
+    rectangle "External Systems" as External {
+        component [File System] as fs
+        component [Terminal/X11/NS] as terminal
+        component [Subprocess] as subprocess
+    }
+}
+
+' Connections
+UI --> ELisp : "calls"
+ELisp --> Interpreter : "evaluated by"
+Interpreter --> Core : "uses primitives"
+Core --> External : "interfaces with"
+
+frames --> windows : "contains"
+windows --> buffers : "displays"
+commands --> buffers : "modifies"
+eventloop --> commands : "invokes"
+display --> terminal : "renders to"
+
+@enduml
+#+end_src
+*** Event Flow Sequence Diagram
+#+begin_src plantuml
+@startuml Emacs Event Flow
+actor User
+participant "Event Loop\n(C Core)" as EventLoop
+participant "Key Binding\nSystem" as KeyBinding
+participant "Command\n(Elisp Function)" as Command
+participant "Buffer" as Buffer
+participant "Display Engine" as Display
+participant "Terminal/GUI" as Screen
+
+User -> EventLoop: Press key (e.g., C-x C-s)
+activate EventLoop
+
+EventLoop -> KeyBinding: Lookup key sequence
+activate KeyBinding
+KeyBinding --> EventLoop: Return command\n(save-buffer)
+deactivate KeyBinding
+
+EventLoop -> Command: Execute command
+activate Command
+
+Command -> Buffer: Modify buffer\n(set saved flag)
+activate Buffer
+Buffer --> Command: Buffer modified
+deactivate Buffer
+
+Command -> Command: Run hooks\n(after-save-hook)
+
+Command --> EventLoop: Command complete
+deactivate Command
+
+EventLoop -> Display: Update display
+activate Display
+Display -> Screen: Render changes\n(mode line, messages)
+deactivate Display
+
+EventLoop --> User: Ready for next input
+deactivate EventLoop
+
+@enduml
+#+end_src
+*** Layered Architecture Diagram
+#+begin_src plantuml
+@startuml Emacs Layered Architecture
+skinparam rectangleBackgroundColor<<user>> lightblue
+skinparam rectangleBackgroundColor<<elisp>> lightgreen
+skinparam rectangleBackgroundColor<<interpreter>> lightyellow
+skinparam rectangleBackgroundColor<<core>> lightcoral
+skinparam rectangleBackgroundColor<<system>> lightgray
+
+rectangle "User Level" <<user>> {
+    [User Configuration\n(init.el, custom.el)]
+    [User Packages\n(ELPA, MELPA)]
+    [User Commands]
+}
+
+rectangle "Emacs Lisp Layer (~95% of Emacs)" <<elisp>> {
+    [Editing Commands]
+    [Major Modes\n(python-mode, org-mode, etc.)]
+    [Minor Modes\n(auto-save, line-numbers, etc.)]
+    [Built-in Applications\n(Dired, Gnus, Calc, etc.)]
+    [Core Libraries\n(cl-lib, seq, map, etc.)]
+}
+
+rectangle "Elisp Interpreter Layer" <<interpreter>> {
+    [Lisp Evaluator]
+    [Byte-code VM]
+    [Reader/Printer]
+    [Symbol Table]
+}
+
+rectangle "C Core Layer (~5% of Emacs)" <<core>> {
+    [Buffer Primitives]
+    [Text Operations]
+    [Event Processing]
+    [Display Management]
+    [Memory Management (GC)]
+    [Primitive Functions]
+}
+
+rectangle "Operating System" <<system>> {
+    [File I/O]
+    [Network]
+    [Terminal/X11/Cocoa]
+    [Process Management]
+}
+
+[User Configuration\n(init.el, custom.el)] --> [Editing Commands]
+[User Packages\n(ELPA, MELPA)] --> [Major Modes\n(python-mode, org-mode, etc.)]
+[User Commands] --> [Minor Modes\n(auto-save, line-numbers, etc.)]
+
+[Editing Commands] --> [Lisp Evaluator]
+[Major Modes\n(python-mode, org-mode, etc.)] --> [Lisp Evaluator]
+[Minor Modes\n(auto-save, line-numbers, etc.)] --> [Lisp Evaluator]
+[Built-in Applications\n(Dired, Gnus, Calc, etc.)] --> [Lisp Evaluator]
+[Core Libraries\n(cl-lib, seq, map, etc.)] --> [Lisp Evaluator]
+
+[Lisp Evaluator] --> [Buffer Primitives]
+[Byte-code VM] --> [Text Operations]
+[Reader/Printer] --> [Event Processing]
+[Symbol Table] --> [Display Management]
+
+[Buffer Primitives] --> [File I/O]
+[Text Operations] --> [Terminal/X11/Cocoa]
+[Event Processing] --> [Process Management]
+[Display Management] --> [Terminal/X11/Cocoa]
+[Memory Management (GC)] --> [Process Management]
+
+@enduml
+#+end_src
+*** Buffer-Window-Frame Relationships
+#+begin_src plantuml
+@startuml Buffer Window Frame Relationships
+object Frame1 {
+    title = "*Emacs*"
+    size = "800x600"
+}
+
+object Window1 {
+    position = "top"
+    height = "70%"
+}
+
+object Window2 {
+    position = "bottom"
+    height = "30%"
+}
+
+object Buffer1 {
+    name = "main.el"
+    mode = "emacs-lisp-mode"
+    content = "(defun ...)"
+}
+
+object Buffer2 {
+    name = "*scratch*"
+    mode = "lisp-interaction-mode"
+    content = ";; Scratch"
+}
+
+object Buffer3 {
+    name = "*Messages*"
+    mode = "messages-mode"
+    content = "Loading..."
+}
+
+Frame1 *-- Window1 : contains
+Frame1 *-- Window2 : contains
+Window1 --> Buffer1 : displays
+Window2 --> Buffer3 : displays
+
+note right of Buffer2
+    Buffer2 exists but is
+    not currently displayed
+    in any window
+end note
+
+note bottom of Frame1
+    One frame can contain
+    multiple windows.
+    Each window displays
+    exactly one buffer.
+    Multiple windows can
+    display the same buffer.
+end note
+
+@enduml
+#+end_src
+*** Extension Mechanism Diagram
+#+begin_src plantuml
+@startuml Emacs Extension Mechanisms
+package "Extension Points" {
+
+    component "Core Function" as corefunc {
+        [original-function]
+    }
+
+    component "Hooks" as hooks {
+        [before-save-hook]
+        [after-save-hook]
+        [mode-hook]
+    }
+
+    component "Advice System" as advice {
+        [:before advice]
+        [:after advice]
+        [:around advice]
+        [:override advice]
+    }
+
+    component "Key Bindings" as keys {
+        [Global keymap]
+        [Mode keymap]
+        [Minor mode keymap]
+    }
+
+    component "Modes" as modes {
+        [Major Mode]
+        [Minor Mode 1]
+        [Minor Mode 2]
+    }
+}
+
+actor "User/Extension" as user
+
+user --> hooks : "add functions to"
+user --> advice : "modify behavior with"
+user --> keys : "bind keys to commands"
+user --> modes : "define/activate"
+
+hooks --> corefunc : "called by"
+advice ..> corefunc : "wraps"
+keys --> corefunc : "invokes"
+modes --> keys : "provides"
+modes --> hooks : "provides"
+
+note right of advice
+    Advice allows non-invasive
+    modification of any function:
+    - Run code before/after
+    - Modify arguments
+    - Modify return values
+    - Completely replace behavior
+end note
+
+note bottom of hooks
+    Hooks are lists of functions
+    run at specific points:
+    - File operations
+    - Mode activation
+    - Buffer changes
+    - Custom triggers
+end note
+
+@enduml
+#+end_src
+** Key Architectural Concepts
+
+*** Buffers
+:PROPERTIES:
+:DEFINITION: Central data structure representing text being edited
+:END:
+
+- Not necessarily tied to files
+- Can contain any text, including:
+  + Program output
+  + Menus and UI elements
+  + Interactive applications
+  + Temporary scratch space
+
+*** Windows and Frames
+
+**** Windows
+- Viewports into buffers
+- Multiple windows can show the same buffer
+- Multiple windows can show different buffers
+- Split horizontally or vertically
+
+**** Frames
+- Top-level windows (what most applications call "windows")
+- Can contain multiple windows
+- Can be in terminal or GUI mode
+
+*** Modes
+
+**** Major Modes
+- Define primary behavior for a buffer
+- Only one major mode active per buffer
+- Examples:
+  + =python-mode=
+  + =org-mode=
+  + =text-mode=
+  + =fundamental-mode=
+
+**** Minor Modes
+- Add optional features
+- Multiple minor modes can be active simultaneously
+- Examples:
+  + =auto-save-mode=
+  + =line-number-mode=
+  + =flycheck-mode=
+  + =company-mode=
+
+*** Key Bindings and Command Loop
+
+The event-driven architecture centers around:
+
+- Key presses invoke commands (Elisp functions)
+- Highly remappable keybindings
+- Multiple keymaps with precedence:
+  1. Overriding keymaps
+  2. Minor mode keymaps
+  3. Major mode keymap
+  4. Global keymap
+
+*** Hooks and Advice
+:PROPERTIES:
+:PURPOSE: Extensibility mechanisms
+:END:
+
+**** Hooks
+Lists of functions called at specific points in execution.
+
+#+BEGIN_SRC emacs-lisp
+;; Example: Add function to hook
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
+#+END_SRC
+
+Common hooks:
+- =before-save-hook=
+- =after-save-hook=
+- =mode-hook= (e.g., =python-mode-hook=)
+- =kill-buffer-hook=
+
+**** Advice
+Mechanism to modify behavior of existing functions without changing their source.
+
+#+BEGIN_SRC emacs-lisp
+;; Example: Add advice to function
+(advice-add 'save-buffer :before #'my-pre-save-function)
+#+END_SRC
+
+Advice types:
+- =:before= - Run before the original function
+- =:after= - Run after the original function
+- =:around= - Wrap the original function
+- =:override= - Replace the original function
+
+** Data Flow
+
+#+BEGIN_EXAMPLE
+User Input → Event Loop → Key Binding → Command (Elisp Function)
+    ↓                                           ↓
+Display ← Screen Rendering ← Buffer Modification
+#+END_EXAMPLE
+
+*** Detailed Flow
+
+1. *User Input* :: User presses a key or performs an action
+2. *Event Loop* :: C core captures the event
+3. *Key Lookup* :: Key binding system finds associated command
+4. *Command Execution* :: Elisp function is evaluated
+5. *Buffer Modification* :: Text or state is changed
+6. *Display Update* :: Screen is refreshed to show changes
+7. *Ready* :: System waits for next input
+
+** What Makes Emacs Architecture Unique
+
+*** Self-documenting System
+- Every function has documentation accessible via =C-h f=
+- Every variable has documentation accessible via =C-h v=
+- Every key binding is inspectable via =C-h k=
+- Source code is accessible via =M-.= (jump to definition)
+
+*** Live Environment
+You can modify Emacs while it's running:
+- Evaluate code with =C-x C-e=
+- Redefine functions on the fly
+- Load and reload packages
+- Change configuration without restarting
+
+*** Everything is Data
+- Text is data
+- Code is data (homoiconicity of Lisp)
+- Configuration is data
+- All manipulable through Elisp data structures
+
+*** Extension = Configuration
+No distinction between user configuration and extensions:
+- Both are Elisp code
+- User config (=init.el=) can be as sophisticated as any package
+- Packages are just Elisp files
+- Seamless integration between core, packages, and user code
+
+** Historical Impact
+
+This architecture has enabled Emacs to:
+- Remain relevant for *40+ years*
+- Adapt to changing technologies (terminals → X11 → macOS → Wayland)
+- Support modern features (LSP, tree-sitter, native compilation)
+- Maintain backward compatibility
+- Foster a vibrant ecosystem of packages
+
+** Architecture Benefits
+
+*** For Users
+- Infinite customization possibilities
+- Learn incrementally (start simple, grow expertise)
+- Never "hit a wall" in what you can modify
+- Community packages extend functionality
+
+*** For Developers
+- Easy to extend existing functionality
+- Can inspect and learn from existing code
+- Rapid prototyping and testing
+- Full access to internals
+
+*** For the Ecosystem
+- Long-term stability
+- Package compatibility
+- Shared conventions and idioms
+- Collective knowledge accumulation
+
+** References and Further Reading
+
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/][Emacs Lisp Reference Manual]]
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/][Emacs User Manual]]
+- [[https://github.com/emacs-mirror/emacs][Emacs Source Code]]
+- =C-h i m Elisp RET= (Built-in documentation in Emacs)
+- [[file:emacs-internals.org][Deep Dive into Emacs Internals]]
+
+** Footnotes
+
+[fn:1] The exact percentage of C vs Elisp code varies by version, but the principle remains: the C core is minimal, and most functionality is in Elisp.
+
+[fn:2] Modern Emacs (28+) includes native compilation support, which compiles Elisp to native code for better performance while maintaining the same architecture.
