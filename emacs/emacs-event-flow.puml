@@ -1,0 +1,40 @@
+@startuml Emacs Event Flow
+actor User
+participant "Event Loop\n(C Core)" as EventLoop
+participant "Key Binding\nSystem" as KeyBinding
+participant "Command\n(Elisp Function)" as Command
+participant "Buffer" as Buffer
+participant "Display Engine" as Display
+participant "Terminal/GUI" as Screen
+
+User -> EventLoop: Press key (e.g., C-x C-s)
+activate EventLoop
+
+EventLoop -> KeyBinding: Lookup key sequence
+activate KeyBinding
+KeyBinding --> EventLoop: Return command\n(save-buffer)
+deactivate KeyBinding
+
+EventLoop -> Command: Execute command
+activate Command
+
+Command -> Buffer: Modify buffer\n(set saved flag)
+activate Buffer
+Buffer --> Command: Buffer modified
+deactivate Buffer
+
+Command -> Command: Run hooks\n(after-save-hook)
+
+Command --> EventLoop: Command complete
+deactivate Command
+
+EventLoop -> Display: Update display
+activate Display
+Display -> Screen: Render changes\n(mode line, messages)
+deactivate Display
+
+EventLoop --> User: Ready for next input
+deactivate EventLoop
+
+@enduml
+

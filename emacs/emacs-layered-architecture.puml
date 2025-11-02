@@ -1,0 +1,67 @@
+@startuml Emacs Layered Architecture
+skinparam rectangleBackgroundColor<<user>> lightblue
+skinparam rectangleBackgroundColor<<elisp>> lightgreen
+skinparam rectangleBackgroundColor<<interpreter>> lightyellow
+skinparam rectangleBackgroundColor<<core>> lightcoral
+skinparam rectangleBackgroundColor<<system>> lightgray
+
+rectangle "User Level" <<user>> {
+    [User Configuration\n(init.el, custom.el)]
+    [User Packages\n(ELPA, MELPA)]
+    [User Commands]
+}
+
+rectangle "Emacs Lisp Layer (~95% of Emacs)" <<elisp>> {
+    [Editing Commands]
+    [Major Modes\n(python-mode, org-mode, etc.)]
+    [Minor Modes\n(auto-save, line-numbers, etc.)]
+    [Built-in Applications\n(Dired, Gnus, Calc, etc.)]
+    [Core Libraries\n(cl-lib, seq, map, etc.)]
+}
+
+rectangle "Elisp Interpreter Layer" <<interpreter>> {
+    [Lisp Evaluator]
+    [Byte-code VM]
+    [Reader/Printer]
+    [Symbol Table]
+}
+
+rectangle "C Core Layer (~5% of Emacs)" <<core>> {
+    [Buffer Primitives]
+    [Text Operations]
+    [Event Processing]
+    [Display Management]
+    [Memory Management (GC)]
+    [Primitive Functions]
+}
+
+rectangle "Operating System" <<system>> {
+    [File I/O]
+    [Network]
+    [Terminal/X11/Cocoa]
+    [Process Management]
+}
+
+[User Configuration\n(init.el, custom.el)] --> [Editing Commands]
+[User Packages\n(ELPA, MELPA)] --> [Major Modes\n(python-mode, org-mode, etc.)]
+[User Commands] --> [Minor Modes\n(auto-save, line-numbers, etc.)]
+
+[Editing Commands] --> [Lisp Evaluator]
+[Major Modes\n(python-mode, org-mode, etc.)] --> [Lisp Evaluator]
+[Minor Modes\n(auto-save, line-numbers, etc.)] --> [Lisp Evaluator]
+[Built-in Applications\n(Dired, Gnus, Calc, etc.)] --> [Lisp Evaluator]
+[Core Libraries\n(cl-lib, seq, map, etc.)] --> [Lisp Evaluator]
+
+[Lisp Evaluator] --> [Buffer Primitives]
+[Byte-code VM] --> [Text Operations]
+[Reader/Printer] --> [Event Processing]
+[Symbol Table] --> [Display Management]
+
+[Buffer Primitives] --> [File I/O]
+[Text Operations] --> [Terminal/X11/Cocoa]
+[Event Processing] --> [Process Management]
+[Display Management] --> [Terminal/X11/Cocoa]
+[Memory Management (GC)] --> [Process Management]
+
+@enduml
+

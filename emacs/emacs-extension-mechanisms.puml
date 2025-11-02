@@ -1,0 +1,66 @@
+@startuml Emacs Extension Mechanisms
+package "Extension Points" {
+
+    component "Core Function" as corefunc {
+        [original-function]
+    }
+
+    component "Hooks" as hooks {
+        [before-save-hook]
+        [after-save-hook]
+        [mode-hook]
+    }
+
+    component "Advice System" as advice {
+        [:before advice]
+        [:after advice]
+        [:around advice]
+        [:override advice]
+    }
+
+    component "Key Bindings" as keys {
+        [Global keymap]
+        [Mode keymap]
+        [Minor mode keymap]
+    }
+
+    component "Modes" as modes {
+        [Major Mode]
+        [Minor Mode 1]
+        [Minor Mode 2]
+    }
+}
+
+actor "User/Extension" as user
+
+user --> hooks : "add functions to"
+user --> advice : "modify behavior with"
+user --> keys : "bind keys to commands"
+user --> modes : "define/activate"
+
+hooks --> corefunc : "called by"
+advice ..> corefunc : "wraps"
+keys --> corefunc : "invokes"
+modes --> keys : "provides"
+modes --> hooks : "provides"
+
+note right of advice
+    Advice allows non-invasive
+    modification of any function:
+    - Run code before/after
+    - Modify arguments
+    - Modify return values
+    - Completely replace behavior
+end note
+
+note bottom of hooks
+    Hooks are lists of functions
+    run at specific points:
+    - File operations
+    - Mode activation
+    - Buffer changes
+    - Custom triggers
+end note
+
+@enduml
+

@@ -1,0 +1,56 @@
+@startuml Buffer Window Frame Relationships
+object Frame1 {
+    title = "*Emacs*"
+    size = "800x600"
+}
+
+object Window1 {
+    position = "top"
+    height = "70%"
+}
+
+object Window2 {
+    position = "bottom"
+    height = "30%"
+}
+
+object Buffer1 {
+    name = "main.el"
+    mode = "emacs-lisp-mode"
+    content = "(defun ...)"
+}
+
+object Buffer2 {
+    name = "*scratch*"
+    mode = "lisp-interaction-mode"
+    content = ";; Scratch"
+}
+
+object Buffer3 {
+    name = "*Messages*"
+    mode = "messages-mode"
+    content = "Loading..."
+}
+
+Frame1 *-- Window1 : contains
+Frame1 *-- Window2 : contains
+Window1 --> Buffer1 : displays
+Window2 --> Buffer3 : displays
+
+note right of Buffer2
+    Buffer2 exists but is
+    not currently displayed
+    in any window
+end note
+
+note bottom of Frame1
+    One frame can contain
+    multiple windows.
+    Each window displays
+    exactly one buffer.
+    Multiple windows can
+    display the same buffer.
+end note
+
+@enduml
+

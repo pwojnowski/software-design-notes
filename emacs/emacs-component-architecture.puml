@@ -1,0 +1,58 @@
+@startuml Emacs Architecture - Components
+!define RECTANGLE class
+
+package "Emacs Architecture" {
+
+    rectangle "User Interface Layer" as UI {
+        component [Frames] as frames
+        component [Windows] as windows
+        component [Minibuffer] as minibuffer
+        component [Mode Line] as modeline
+    }
+
+    rectangle "Emacs Lisp Layer" as ELisp {
+        component [Major Modes] as majormodes
+        component [Minor Modes] as minormodes
+        component [Built-in Packages] as packages
+        component [User Extensions] as userext
+        component [Commands] as commands
+        component [Hooks & Advice] as hooks
+    }
+
+    rectangle "Elisp Interpreter" as Interpreter {
+        component [Evaluator] as eval
+        component [Byte-code Compiler] as compiler
+        component [Reader] as reader
+        component [Printer] as printer
+    }
+
+    rectangle "C Core" as Core {
+        component [Buffer Management] as buffers
+        component [Text Primitives] as textprims
+        component [Event Loop] as eventloop
+        component [Display Engine] as display
+        component [Garbage Collector] as gc
+        component [OS Interface] as os
+    }
+
+    rectangle "External Systems" as External {
+        component [File System] as fs
+        component [Terminal/X11/NS] as terminal
+        component [Subprocess] as subprocess
+    }
+}
+
+' Connections
+UI --> ELisp : "calls"
+ELisp --> Interpreter : "evaluated by"
+Interpreter --> Core : "uses primitives"
+Core --> External : "interfaces with"
+
+frames --> windows : "contains"
+windows --> buffers : "displays"
+commands --> buffers : "modifies"
+eventloop --> commands : "invokes"
+display --> terminal : "renders to"
+
+@enduml
+
