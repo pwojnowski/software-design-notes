@@ -48,25 +48,25 @@ Most of Emacs (~95%) is written in Elisp, making it highly introspective and mod
 
 ** Architecture Diagrams
 *** Component Architecture
-[[file:component-architecture.png]]
+[[file:diagrams/component-architecture.png]]
 
-Source: [[file:component-architecture.puml]]
+Source: [[file:diagrams/component-architecture.puml]]
 *** Event Flow Sequence Diagram
-[[file:event-flow.png]]
+[[file:diagrams/event-flow.png]]
 
-Source: [[file:event-flow.puml]]
+Source: [[file:diagrams/event-flow.puml]]
 *** Layered Architecture Diagram
-[[file:layered-architecture.png]]
+[[file:diagrams/layered-architecture.png]]
 
-Source: [[file:layered-architecture.puml]]
+Source: [[file:diagrams/layered-architecture.puml]]
 *** Buffer-Window-Frame Relationships
-[[file:buffer-window-frame-relationships.png]]
+[[file:diagrams/buffer-window-frame-relationships.png]]
 
-Source: [[file:buffer-window-frame-relationships.puml]]
+Source: [[file:diagrams/buffer-window-frame-relationships.puml]]
 *** Extension Mechanism Diagram
-[[file:extension-mechanisms.png]]
+[[file:diagrams/extension-mechanisms.png]]
 
-Source: [[file:extension-mechanisms.puml]]
+Source: [[file:diagrams/extension-mechanisms.puml]]
 ** Key Architectural Concepts
 
 *** Buffers
