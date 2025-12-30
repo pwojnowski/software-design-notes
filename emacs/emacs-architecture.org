@@ -1,3 +1,9 @@
+#+TITLE: Emacs Architecture Overview
+#+AUTHOR: The Emacs Collective
+#+DATE: [2025-10-31 Fri]
+#+DESCRIPTION: A comprehensive guide to Emacs architecture, components, and design principles
+#+STARTUP: overview
+
 * Emacs Architecture Overview
 ** Core Architecture Components
 
